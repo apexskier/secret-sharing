@@ -15,6 +15,7 @@ import {
   InputGroup,
   InputRightElement,
   Link,
+  Skeleton,
   Text,
   useClipboard,
 } from "@chakra-ui/react";
@@ -74,7 +75,7 @@ export function Send({ rawKey }: { rawKey: string }) {
         Someone needs a secret from you!
       </Heading>
       <Text as="i">
-        (If you need a secret, you can <Link href="/">request one here</Link>.)
+        (If you need a secret, you can <Link href="./">request one here</Link>.)
       </Text>
       <FormControl>
         <FormLabel>Secret</FormLabel>
@@ -151,68 +152,87 @@ function EncryptedMessageContainer({
   message: string;
 }) {
   const encrypted = React.useMemo(async () => {
+    if (!message) {
+      return null;
+    }
     const encryptedMessage = await crypto.subtle.encrypt(
       symmetricKeyEncryptionOptions,
       symmetricKey,
       new TextEncoder().encode(message)
     );
-    return JSON.stringify({
-      message: arrayBufferToBase64(encryptedMessage),
-      key: arrayBufferToBase64(wrappedKey),
-    });
+    return btoa(
+      JSON.stringify({
+        message: arrayBufferToBase64(encryptedMessage),
+        key: arrayBufferToBase64(wrappedKey),
+      })
+    );
   }, [message, symmetricKey, wrappedKey]);
 
   return (
-    <Await
-      promise={encrypted}
-      catch={(error) => (
-        <Alert status="error">
-          <AlertIcon />
-          <AlertTitle>Failed to encrypt</AlertTitle>
-          <AlertDescription>
-            {error instanceof Error ? error.message : String(error)}
-          </AlertDescription>
-        </Alert>
-      )}
-      then={(payload) => (
-        <EncryptedMessage payload={payload} isDisabled={!message} />
-      )}
-    >
-      <Loading>Encrypting</Loading>
-    </Await>
-  );
-}
-
-function EncryptedMessage({
-  payload,
-  isDisabled,
-}: {
-  payload: string;
-  isDisabled: boolean;
-}) {
-  const { onCopy, hasCopied } = useClipboard(payload);
-
-  return (
     <FormControl>
-      <FormLabel>️Encrypted text</FormLabel>
+      <FormLabel>️Encrypted message</FormLabel>
       <HStack justifyContent="space-between">
-        <Box
-          as="pre"
-          whiteSpace="nowrap"
-          textOverflow="ellipsis"
-          overflow="hidden"
-          display="block"
+        <Await
+          promise={encrypted}
+          catch={(error) => (
+            <Alert status="error">
+              <AlertIcon />
+              <AlertTitle>Failed to encrypt</AlertTitle>
+              <AlertDescription>
+                {error instanceof Error ? error.message : String(error)}
+              </AlertDescription>
+            </Alert>
+          )}
+          then={(payload) => (
+            <>
+              {payload ? (
+                <EncryptedMessage payload={payload} />
+              ) : (
+                <>
+                  <Text fontSize="sm">
+                    Once encrypted, message will appear here.
+                  </Text>
+                  <Button flexShrink="0" isDisabled>
+                    Copy
+                  </Button>
+                </>
+              )}
+            </>
+          )}
         >
-          {payload}
-        </Box>
-        <Button flexShrink="0" onClick={onCopy} isDisabled={isDisabled}>
-          {hasCopied ? "Copied!" : "Copy"}
-        </Button>
+          <Skeleton flex="1">
+            <Box as="pre">Encrypting</Box>
+          </Skeleton>
+          <Button flexShrink="0" isDisabled>
+            Copy
+          </Button>
+        </Await>
       </HStack>
       <FormHelperText>
         Share this text with the person requesting the secret. They are the only
         person who will be able to decrypt it.
       </FormHelperText>
     </FormControl>
+  );
+}
+
+function EncryptedMessage({ payload }: { payload: string }) {
+  const { onCopy, hasCopied } = useClipboard(payload);
+
+  return (
+    <>
+      <Box
+        as="pre"
+        whiteSpace="nowrap"
+        textOverflow="ellipsis"
+        overflow="hidden"
+        display="block"
+      >
+        {payload}
+      </Box>
+      <Button flexShrink="0" onClick={onCopy}>
+        {hasCopied ? "Copied!" : "Copy"}
+      </Button>
+    </>
   );
 }

@@ -66,7 +66,7 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
     (async () => {
       try {
         const { message: base64Message, key: base64WrappedKey } = JSON.parse(
-          encryptedPayload
+          atob(encryptedPayload)
         ) as { message: string; key: string };
         const wrappedKey = base64ToArrayBuffer(base64WrappedKey);
         const encryptedMessage = base64ToArrayBuffer(base64Message);
@@ -102,7 +102,7 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
   return (
     <>
       <FormControl isInvalid={!!decryptionError}>
-        <FormLabel>Encrypted text</FormLabel>
+        <FormLabel>Encrypted message</FormLabel>
         <InputGroup>
           <Input
             value={encryptedPayload}
@@ -125,13 +125,12 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
             </Button>
           </InputRightElement>
         </InputGroup>
-
-        <FormErrorMessage>
-          <DecryptError error={decryptionError} />
-        </FormErrorMessage>
         <FormHelperText>
           Paste the message you receive from the secret knower.
         </FormHelperText>
+        <FormErrorMessage>
+          <DecryptError error={decryptionError} />
+        </FormErrorMessage>
       </FormControl>
 
       <FormControl>
@@ -149,7 +148,7 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
 function DecryptedMessage({ decrypted }: { decrypted: string }) {
   const { onCopy, hasCopied } = useClipboard(decrypted);
   return (
-    <HStack justifyContent="space-between">
+    <HStack justifyContent="space-between" alignItems="baseline">
       <Text as="pre" whiteSpace="pre-wrap">
         {decrypted}
       </Text>
@@ -169,10 +168,10 @@ function DecryptError({
     return null;
   }
   if (error == DecodingError) {
-    return "Failed to decode";
+    return "Failed to decode, ensure the message is copied correctly.";
   }
   if (error == DecryptionError) {
-    return "Failed to decrypt";
+    return "Failed to decrypt, try sending a new link and be sure not to refresh this page.";
   }
   ensureNever(error);
 }
@@ -185,9 +184,11 @@ export function Request() {
   return (
     <>
       <Heading as="h3" fontSize="xl">
-        You need a secret from someone!
+        You need a secret from someone…
       </Heading>
-      <Text as="i">(If you have the secret, ask them to send you a link.)</Text>
+      <Text as="i">
+        (If you have the secret, get a link from the person who needs it.)
+      </Text>
       <PublicKey />
       <Await
         promise={keyPromise}
@@ -255,7 +256,12 @@ function ShareLink({ exportedKey }: { exportedKey: ArrayBuffer }) {
         </Button>
       </HStack>
       <FormHelperText>
-        Send this link to the person who knows the secret.
+        Send this link to the person who knows the secret.{" "}
+        <Text as="b">
+          Keep this page open, you need it to read the message they'll send
+          back.
+        </Text>{" "}
+        If you refresh, send a new link.
       </FormHelperText>
     </FormControl>
   );

@@ -152,7 +152,7 @@ export function App() {
                 <Link isExternal href="https://w3c.github.io/webcrypto/">
                   Web Cryptography API
                 </Link>
-                . No data (including secrets, encrypted text, and keys) is
+                . No data (including secrets, encrypted content, and keys) is
                 persisted or sent externally, except by you copying it.
               </Text>
             </VStack>
