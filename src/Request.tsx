@@ -230,7 +230,7 @@ function PublicKey() {
 
 function ShareLink({ exportedKey }: { exportedKey: ArrayBuffer }) {
   const url = React.useMemo(() => {
-    const url = new URL(location.origin);
+    const url = new URL(location.href);
     url.searchParams.set("key", arrayBufferToBase64(exportedKey));
     return url.toString();
   }, [exportedKey]);
