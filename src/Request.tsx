@@ -163,7 +163,9 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
 
 const decryptedPlaceholder = (
   <>
-    <Text fontSize="sm">Once decrypted, the secret will display here.</Text>
+    <FormHelperText>
+      Once decrypted, the secret will display here.
+    </FormHelperText>
     {disabledCopy}
   </>
 );
@@ -282,12 +284,14 @@ function ShareLink({ exportedKey }: { exportedKey: ArrayBuffer }) {
         </Button>
       </HStack>
       <FormHelperText>
-        Send this link to the person who knows the secret.{" "}
-        <Text as="b">
-          Keep this page open, you need it to read the message they'll send
-          back.
-        </Text>{" "}
-        If you refresh, send a new link.
+        <Text>
+          Send this link to the person who knows the secret over whatever
+          channel works best for you.{" "}
+          <Text as="b">
+            Keep this page open, you need it to read the message they send back.
+          </Text>{" "}
+          If you refresh, send a new link.
+        </Text>
       </FormHelperText>
     </FormControl>
   );

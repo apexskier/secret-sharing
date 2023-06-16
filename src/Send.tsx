@@ -178,12 +178,14 @@ function EncryptedMessageContainer({
           then={(payload) => (
             <>
               {payload ? (
-                <EncryptedMessage payload={payload} />
+                <>
+                  <EncryptedMessage payload={payload} />
+                </>
               ) : (
                 <>
-                  <Text fontSize="sm">
+                  <FormHelperText>
                     Once encrypted, message will appear here.
-                  </Text>
+                  </FormHelperText>
                   {disabledCopy}
                 </>
               )}
@@ -206,8 +208,9 @@ function EncryptedMessageContainer({
         </Await>
       </HStack>
       <FormHelperText>
-        Share this text with the person requesting the secret. They are the only
-        person who will be able to decrypt it.
+        Share this encrypted message with the person requesting the secret over
+        whatever channel works best for you. Only they will be able to decrypt
+        the secret from it.
       </FormHelperText>
     </FormControl>
   );
