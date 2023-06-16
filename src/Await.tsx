@@ -1,10 +1,10 @@
 import React from "react";
 
-interface SuspensePromise<T> {
+interface AwaitPromise<T> {
   read(): T;
 }
 
-function wrapPromise<T>(promise: Promise<T>): SuspensePromise<T> {
+function wrapPromise<T>(promise: Promise<T>): AwaitPromise<T> {
   let status = "pending";
   let response: T;
 
@@ -33,27 +33,54 @@ function wrapPromise<T>(promise: Promise<T>): SuspensePromise<T> {
   };
 }
 
-export function useSuspensePromise<T>(promise: Promise<T>): SuspensePromise<T> {
+function useAwaitPromise<T>(promise: Promise<T>): AwaitPromise<T> {
   return React.useMemo(() => wrapPromise(promise), [promise]);
 }
 
 interface AwaitProps<T> {
-  resource: SuspensePromise<T>;
-  children(data: T): JSX.Element;
-  onError(error: unknown): JSX.Element;
+  promise: Promise<T>;
+  then(data: T): JSX.Element;
+  catch(error: unknown): JSX.Element;
+  children: React.ReactNode;
 }
 
 // Await is a react component that suspend until the resource has completed
 // loading. If the resource throws an error, this component will throw it (so
 // add an error boundary if you wish to handle it).
-export function Await<T>({ resource, onError, children }: AwaitProps<T>) {
+export function Await<T>({
+  promise: resource,
+  then: onResolve,
+  catch: onReject,
+  children,
+}: AwaitProps<T>) {
+  return (
+    <React.Suspense fallback={children}>
+      <AwaitInner
+        resource={useAwaitPromise(resource)}
+        onReject={onReject}
+        onResolve={onResolve}
+      />
+    </React.Suspense>
+  );
+}
+
+interface AwaitInnerProps<T> {
+  resource: AwaitPromise<T>;
+  onResolve(data: T): JSX.Element;
+  onReject(error: unknown): JSX.Element;
+}
+
+// Await is a react component that suspend until the resource has completed
+// loading. If the resource throws an error, this component will throw it (so
+// add an error boundary if you wish to handle it).
+function AwaitInner<T>({ resource, onReject, onResolve }: AwaitInnerProps<T>) {
   try {
-    return children(resource.read());
+    return onResolve(resource.read());
   } catch (e) {
     if (e instanceof Promise) {
       throw e;
     }
     console.error(e);
-    return onError(e);
+    return onReject(e);
   }
 }

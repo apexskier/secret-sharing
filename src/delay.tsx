@@ -1,6 +1,12 @@
-function delay<T>(ms: number) {
+export function delay<T>(ms: number | null) {
   return async (value: T) => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+    if (!ms) {
+      await new Promise(() => {
+        // never resolve
+      });
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    }
     return value;
   };
 }
