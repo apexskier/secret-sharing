@@ -1,9 +1,13 @@
 import React from "react";
 import {
+  Box,
   Button,
   FormControl,
   FormLabel,
+  HStack,
   Input,
+  InputGroup,
+  InputRightElement,
   Text,
   Textarea,
   useClipboard,
@@ -34,26 +38,51 @@ export function Send({ rawKey }: { rawKey: string }) {
   const [message, setMessage] = React.useState("");
 
   return (
-    <React.Suspense fallback={<Text>Preparing key...</Text>}>
-      <Await
-        resource={key}
-        onError={() => <Text>Key is invalid, get a new link</Text>}
-      >
-        {(key) => (
-          <FormControl>
-            <FormLabel>Message</FormLabel>
-            <Input
-              value={message}
-              onChange={handleChange}
-              placeholder="my-secret-text"
-            />
-            {message ? (
-              <EncryptedMessageContainer publicKey={key} message={message} />
-            ) : null}
-          </FormControl>
-        )}
-      </Await>
-    </React.Suspense>
+    <>
+      <React.Suspense fallback={<Text>Preparing key...</Text>}>
+        <Await
+          resource={key}
+          onError={() => <Text>Key is invalid, get a new link</Text>}
+        >
+          {(key) => (
+            <>
+              <FormControl mb="3">
+                <FormLabel>Secret</FormLabel>
+                <InputGroup>
+                  <Input
+                    value={message}
+                    onChange={handleChange}
+                    placeholder="my-secret-text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                  />
+                  <InputRightElement width="auto">
+                    <Button
+                      size="sm"
+                      onClick={React.useCallback(() => {
+                        navigator.clipboard.readText().then(setMessage);
+                      }, [setMessage])}
+                      mx="1"
+                    >
+                      Paste
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+
+              {message ? (
+                <Box>
+                  <EncryptedMessageContainer
+                    publicKey={key}
+                    message={message}
+                  />
+                </Box>
+              ) : null}
+            </>
+          )}
+        </Await>
+      </React.Suspense>
+    </>
   );
 }
 
@@ -77,7 +106,7 @@ function EncryptedMessageContainer({
     <React.Suspense fallback={<Text>Encrypting...</Text>}>
       <Await
         resource={useSuspensePromise(encrypted)}
-        onError={(error) => <Text>Error encrypting: {error}</Text>}
+        onError={() => <Text>Error encrypting</Text>}
       >
         {(encrypted) => <EncryptedMessage payload={encrypted} />}
       </Await>
@@ -88,9 +117,19 @@ function EncryptedMessageContainer({
 function EncryptedMessage({ payload }: { payload: string }) {
   const { onCopy, hasCopied } = useClipboard(payload);
   return (
-    <>
-      <Textarea value={payload} readOnly={true} />
-      <Button onClick={onCopy}>{hasCopied ? "Copied!" : "Copy"}</Button>
-    </>
+    <HStack justifyContent="space-between">
+      <Box
+        as="pre"
+        whiteSpace="nowrap"
+        textOverflow="ellipsis"
+        overflow="hidden"
+        display="block"
+      >
+        {payload}
+      </Box>
+      <Button flexShrink="0" onClick={onCopy}>
+        {hasCopied ? "Copied!" : "Copy"}
+      </Button>
+    </HStack>
   );
 }
