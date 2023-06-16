@@ -33,6 +33,7 @@ import {
   base64ToArrayBuffer,
 } from "./arrayBufferToBase64";
 import { Loading } from "./Loading";
+import { disabledCopy } from "./disabledCopy";
 
 export function Send({ rawKey }: { rawKey: string }) {
   const symmetricKeyPromise = React.useMemo(
@@ -174,15 +175,6 @@ function EncryptedMessageContainer({
       <HStack justifyContent="space-between">
         <Await
           promise={encrypted}
-          catch={(error) => (
-            <Alert status="error">
-              <AlertIcon />
-              <AlertTitle>Failed to encrypt</AlertTitle>
-              <AlertDescription>
-                {error instanceof Error ? error.message : String(error)}
-              </AlertDescription>
-            </Alert>
-          )}
           then={(payload) => (
             <>
               {payload ? (
@@ -192,20 +184,25 @@ function EncryptedMessageContainer({
                   <Text fontSize="sm">
                     Once encrypted, message will appear here.
                   </Text>
-                  <Button flexShrink="0" isDisabled>
-                    Copy
-                  </Button>
+                  {disabledCopy}
                 </>
               )}
             </>
+          )}
+          catch={(error) => (
+            <Alert status="error">
+              <AlertIcon />
+              <AlertTitle>Failed to encrypt</AlertTitle>
+              <AlertDescription>
+                {error instanceof Error ? error.message : String(error)}
+              </AlertDescription>
+            </Alert>
           )}
         >
           <Skeleton flex="1">
             <Box as="pre">Encrypting</Box>
           </Skeleton>
-          <Button flexShrink="0" isDisabled>
-            Copy
-          </Button>
+          {disabledCopy}
         </Await>
       </HStack>
       <FormHelperText>

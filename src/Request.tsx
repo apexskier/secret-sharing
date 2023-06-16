@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Alert,
   AlertDescription,
@@ -16,6 +15,7 @@ import {
   InputGroup,
   InputRightElement,
   Link,
+  Skeleton,
   Text,
   useClipboard,
 } from "@chakra-ui/react";
@@ -32,6 +32,8 @@ import {
   base64ToArrayBuffer,
 } from "./arrayBufferToBase64";
 import { Loading } from "./Loading";
+import { disabledCopy } from "./disabledCopy";
+import React from "react";
 
 const keyPromise = crypto.subtle.generateKey(asymmetricKeyOptions, true, [
   "wrapKey",
@@ -49,59 +51,60 @@ const DecryptionError = Symbol("decryption failure");
 type DecryptionError = typeof DecryptionError;
 
 function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
-  const [encryptedPayload, _setEncryptedPayload] = React.useState("");
-  const [decrypted, setDecrypted] = React.useState<string | null>(null);
-  const [decryptionError, setDecryptionError] = React.useState<
-    DecodingError | DecryptionError | null
+  const [encryptedPayload, setEncryptedPayload] = React.useState("");
+  const [error, setError] = React.useState<
+    DecryptionError | DecodingError | Error | null
   >(null);
-  const setEncryptedPayload = React.useCallback((encryptedPayload: string) => {
-    setDecryptionError(null);
-    _setEncryptedPayload(encryptedPayload);
-  }, []);
 
-  React.useEffect(() => {
+  const decryptedPromise = React.useMemo(async () => {
     if (!encryptedPayload) {
-      return;
+      return null;
     }
-    (async () => {
+    try {
+      const { message: base64Message, key: base64WrappedKey } = JSON.parse(
+        atob(encryptedPayload)
+      ) as { message: string; key: string };
+      const wrappedKey = base64ToArrayBuffer(base64WrappedKey);
+      const encryptedMessage = base64ToArrayBuffer(base64Message);
       try {
-        const { message: base64Message, key: base64WrappedKey } = JSON.parse(
-          atob(encryptedPayload)
-        ) as { message: string; key: string };
-        const wrappedKey = base64ToArrayBuffer(base64WrappedKey);
-        const encryptedMessage = base64ToArrayBuffer(base64Message);
+        const decryptedKey = await crypto.subtle.unwrapKey(
+          wrappedKeyFormat,
+          wrappedKey,
+          privateKey,
+          asymmetricKeyOptions,
+          symmetricKeyOptions,
+          false,
+          ["decrypt"]
+        );
+        const decryptedMessage = await crypto.subtle.decrypt(
+          symmetricKeyEncryptionOptions,
+          decryptedKey,
+          encryptedMessage
+        );
         try {
-          const decryptedKey = await crypto.subtle.unwrapKey(
-            wrappedKeyFormat,
-            wrappedKey,
-            privateKey,
-            asymmetricKeyOptions,
-            symmetricKeyOptions,
-            false,
-            ["decrypt"]
-          );
-          const decryptedMessage = await crypto.subtle.decrypt(
-            symmetricKeyEncryptionOptions,
-            decryptedKey,
-            encryptedMessage
-          );
-          try {
-            setDecrypted(new TextDecoder().decode(decryptedMessage));
-          } catch (error) {
-            setDecryptionError(DecodingError);
-          }
+          return new TextDecoder().decode(decryptedMessage);
         } catch (error) {
-          setDecryptionError(DecryptionError);
+          console.warn(error);
+          throw DecodingError;
         }
       } catch (error) {
-        setDecryptionError(DecodingError);
+        console.warn(error);
+        throw DecryptionError;
       }
-    })();
+    } catch (error) {
+      console.warn(error);
+      throw DecodingError;
+    }
   }, [privateKey, encryptedPayload]);
+
+  React.useEffect(() => {
+    setError(null);
+    decryptedPromise.catch(setError);
+  }, [decryptedPromise]);
 
   return (
     <>
-      <FormControl isInvalid={!!decryptionError}>
+      <FormControl isInvalid={!!error}>
         <FormLabel>Encrypted message</FormLabel>
         <InputGroup>
           <Input
@@ -129,43 +132,66 @@ function DecryptionForm({ privateKey }: { privateKey: CryptoKey }) {
           Paste the message you receive from the secret knower.
         </FormHelperText>
         <FormErrorMessage>
-          <DecryptError error={decryptionError} />
+          <DecryptError error={error} />
         </FormErrorMessage>
       </FormControl>
 
       <FormControl>
         <FormLabel>Secret</FormLabel>
-        {decrypted ? (
-          <DecryptedMessage decrypted={decrypted} />
-        ) : (
-          <Text>Once decrypted, the secret will display here.</Text>
-        )}
+        <HStack justifyContent="space-between" alignItems="baseline">
+          <Await
+            promise={decryptedPromise}
+            then={(decrypted) =>
+              decrypted ? (
+                <DecryptedMessage decrypted={decrypted} />
+              ) : (
+                decryptedPlaceholder
+              )
+            }
+            catch={() => decryptedPlaceholder}
+          >
+            <Skeleton flex="1">
+              <Box as="pre">Decrypting</Box>
+            </Skeleton>
+            {disabledCopy}
+          </Await>
+        </HStack>
       </FormControl>
     </>
   );
 }
 
+const decryptedPlaceholder = (
+  <>
+    <Text fontSize="sm">Once decrypted, the secret will display here.</Text>
+    {disabledCopy}
+  </>
+);
+
 function DecryptedMessage({ decrypted }: { decrypted: string }) {
   const { onCopy, hasCopied } = useClipboard(decrypted);
   return (
-    <HStack justifyContent="space-between" alignItems="baseline">
+    <>
       <Text as="pre" whiteSpace="pre-wrap">
         {decrypted}
       </Text>
       <Button flexShrink="0" onClick={onCopy}>
         {hasCopied ? "Copied!" : "Copy"}
       </Button>
-    </HStack>
+    </>
   );
 }
 
 function DecryptError({
   error,
 }: {
-  error: DecryptionError | DecodingError | null;
+  error: DecryptionError | DecodingError | Error | null;
 }) {
-  if (error === null) {
+  if (!error) {
     return null;
+  }
+  if (typeof error != "symbol") {
+    throw error;
   }
   if (error == DecodingError) {
     return "Failed to decode, ensure the message is copied correctly.";
