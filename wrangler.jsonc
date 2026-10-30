@@ -1,0 +1,16 @@
+{
+  "name": "secret-sharing",
+  "account_id": "b12fc7e0594361391a2e8fab40e3d278",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-30",
+  // Served at camlittle.com/secret-sharing* through a route attached by
+  // Terraform outside this repository. Declaring routes here too would make the
+  // two tools fight over it.
+  "workers_dev": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // HTML needs a fresh nonce and every response needs the security headers.
+    "run_worker_first": true
+  }
+}
