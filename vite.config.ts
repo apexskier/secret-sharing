@@ -7,6 +7,8 @@ export default defineConfig({
     port: 1249,
   },
   build: {
+    // Mirrors the path it's served at, so assets resolve without rewriting.
+    outDir: "dist/secret-sharing",
     sourcemap: true,
   },
   base: "./",

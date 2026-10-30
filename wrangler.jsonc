@@ -10,7 +10,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    // Every request needs the path prefix stripped, and HTML needs a nonce.
+    // HTML needs a fresh nonce and every response needs the security headers.
     "run_worker_first": true
   }
 }

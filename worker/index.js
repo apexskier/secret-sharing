@@ -1,5 +1,3 @@
-const PREFIX = "/secret-sharing";
-
 const HEADERS = {
   "Strict-Transport-Security": "max-age=31536000",
   "X-Content-Type-Options": "nosniff",
@@ -16,19 +14,7 @@ function cspNonce() {
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // The build uses relative asset paths, which only resolve under a trailing
-    // slash.
-    if (url.pathname === PREFIX) {
-      url.pathname = `${PREFIX}/`;
-      return Response.redirect(url.toString(), 301);
-    }
-    if (url.pathname.startsWith(`${PREFIX}/`)) {
-      url.pathname = url.pathname.slice(PREFIX.length);
-    }
-
-    const asset = await env.ASSETS.fetch(new Request(url, request));
+    const asset = await env.ASSETS.fetch(request);
     const headers = new Headers(asset.headers);
     for (const [name, value] of Object.entries(HEADERS)) {
       headers.set(name, value);
